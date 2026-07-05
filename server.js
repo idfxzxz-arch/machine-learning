@@ -53,6 +53,20 @@ const mimeTypes = new Map([
 const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
+    const corsOrigin = getAllowedCorsOrigin(req);
+
+    if (corsOrigin) {
+      setCorsHeaders(res, corsOrigin);
+    }
+
+    if (req.method === "OPTIONS" && url.pathname.startsWith("/api/")) {
+      if (!corsOrigin && req.headers.origin) {
+        return sendJson(res, 403, { error: "Akses ditolak." });
+      }
+
+      res.writeHead(204);
+      return res.end();
+    }
 
     if (url.pathname === "/api/config" && req.method === "GET") {
       return sendJson(res, 200, {
@@ -353,20 +367,33 @@ function isPublicChatModel(modelId) {
 }
 
 function isAllowedOrigin(req) {
+  if (!req.headers.origin) return true;
+  return Boolean(getAllowedCorsOrigin(req));
+}
+
+function getAllowedCorsOrigin(req) {
   const origin = req.headers.origin;
-  if (!origin) return true;
+  if (!origin) return "";
 
   try {
     const originUrl = new URL(origin);
     const requestHost = req.headers.host || "";
 
-    if (originUrl.host === requestHost) return true;
-    if (ALLOWED_ORIGINS.includes(originUrl.origin)) return true;
+    if (originUrl.host === requestHost) return originUrl.origin;
+    if (ALLOWED_ORIGINS.includes(originUrl.origin)) return originUrl.origin;
 
-    return isLocalOrPrivateHost(originUrl.hostname);
+    return isLocalOrPrivateHost(originUrl.hostname) ? originUrl.origin : "";
   } catch {
-    return false;
+    return "";
   }
+}
+
+function setCorsHeaders(res, origin) {
+  res.setHeader("Access-Control-Allow-Origin", origin);
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Max-Age", "86400");
+  res.setHeader("Vary", "Origin");
 }
 
 function isLocalOrPrivateHost(hostname) {

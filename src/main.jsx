@@ -3,6 +3,9 @@ import { createRoot } from "react-dom/client";
 import "./styles.css";
 
 const STORE_KEY = "alphacodes-chat-ai:v3";
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
+const API_BACKEND_MISSING_MESSAGE =
+  "API backend belum terhubung. Pastikan domain ini diarahkan ke server Node, bukan hanya file frontend.";
 
 const defaultSettings = {
   model: "",
@@ -83,16 +86,9 @@ function App() {
 
   async function loadConfigAndModels() {
     try {
-      const configResponse = await fetch("/api/config");
-      const config = await configResponse.json();
+      const config = await fetchJson("/api/config");
 
-      const response = await fetch("/api/models");
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error.error || "Model tidak bisa dimuat");
-      }
-
-      const data = await response.json();
+      const data = await fetchJson("/api/models");
       const models = data.models || [];
 
       setState((prev) => {
@@ -211,7 +207,7 @@ function App() {
     setStatus("AI sedang menulis...");
 
     try {
-      const response = await fetch("/api/chat", {
+      const response = await fetch(apiUrl("/api/chat"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -223,16 +219,18 @@ function App() {
       });
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
+        const error = await readJsonResponse(response).catch(() => ({}));
         throw new Error(error.error || "Permintaan AI gagal.");
       }
 
       const contentType = response.headers.get("content-type") || "";
       if (contentType.includes("text/event-stream")) {
         await readSseResponse(response, (chunk) => appendAssistantChunk(conversationId, assistantId, chunk));
-      } else {
+      } else if (contentType.includes("application/json")) {
         const data = await response.json();
         setAssistantContent(conversationId, assistantId, extractNonStreamContent(data));
+      } else {
+        throw new Error(API_BACKEND_MISSING_MESSAGE);
       }
 
       setStatus("Selesai");
@@ -518,6 +516,29 @@ function App() {
       </div>
     </>
   );
+}
+
+function apiUrl(path) {
+  return `${API_BASE_URL}${path}`;
+}
+
+async function fetchJson(path, init) {
+  const response = await fetch(apiUrl(path), init);
+  if (!response.ok) {
+    const error = await readJsonResponse(response).catch(() => ({}));
+    throw new Error(error.error || "Koneksi API gagal.");
+  }
+
+  return readJsonResponse(response);
+}
+
+async function readJsonResponse(response) {
+  const contentType = response.headers.get("content-type") || "";
+  if (!contentType.includes("application/json")) {
+    throw new Error(API_BACKEND_MISSING_MESSAGE);
+  }
+
+  return response.json();
 }
 
 function EmptyState({ onPickSuggestion }) {
