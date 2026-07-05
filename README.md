@@ -34,7 +34,6 @@ Frontend dev berjalan di `http://127.0.0.1:5173` dan proxy `/api` ke backend `ht
 Nilai koneksi ada di `.env`.
 
 ```env
-PORT=3000
 HOST=0.0.0.0
 OPENAI_BASE_URL=http://192.168.1.13:20128/v1
 OPENAI_API_KEY=isi_api_key_di_sini
@@ -42,6 +41,11 @@ DEFAULT_MODEL=cx/gpt-5.5
 ALLOWED_MODELS=cx/gpt-5.5,cx/gpt-5.4,cx/gpt-5.4-mini
 AI_MAX_TOKENS=2048
 ```
+
+`PORT` sengaja tidak perlu ditulis di `.env`. Jika server/hosting memberi environment variable `PORT`, app akan mengikuti nilai itu. Jika tidak ada, app otomatis fallback ke `3000`.
+
+Jika engine AI berjalan di mesin yang sama dengan app ini, gunakan `http://127.0.0.1:20128/v1`.
+Jika engine AI berada di mesin lain, baru gunakan IP LAN mesin AI, misalnya `http://192.168.1.13:20128/v1`.
 
 Fitur utama:
 
