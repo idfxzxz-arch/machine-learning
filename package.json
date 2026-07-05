@@ -1,0 +1,15 @@
+{
+  "name": "alpacode-chat-ai",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Chat AI lokal dengan proxy OpenAI-compatible.",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "check": "node --check server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
