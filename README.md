@@ -40,9 +40,11 @@ OPENAI_API_KEY=isi_api_key_di_sini
 DEFAULT_MODEL=cx/gpt-5.5
 ALLOWED_MODELS=cx/gpt-5.5,cx/gpt-5.4,cx/gpt-5.4-mini
 AI_MAX_TOKENS=2048
+ALLOWED_ORIGINS=
 ```
 
 `PORT` sengaja tidak perlu ditulis di `.env`. Jika server/hosting memberi environment variable `PORT`, app akan mengikuti nilai itu. Jika tidak ada, app otomatis fallback ke `3000`.
+`ALLOWED_ORIGINS` boleh dikosongkan untuk localhost/LAN. Untuk domain publik, isi dengan origin lengkap, misalnya `https://ai.alphacodes.id`.
 
 Jika engine AI berjalan di mesin yang sama dengan app ini, gunakan `http://127.0.0.1:20128/v1`.
 Jika engine AI berada di mesin lain, baru gunakan IP LAN mesin AI, misalnya `http://192.168.1.13:20128/v1`.

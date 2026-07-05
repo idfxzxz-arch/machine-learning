@@ -17,6 +17,7 @@ const BASE_URL = normalizeBaseUrl(process.env.OPENAI_BASE_URL || "http://127.0.0
 const API_KEY = process.env.OPENAI_API_KEY || "";
 const DEFAULT_MODEL = process.env.DEFAULT_MODEL || "";
 const ALLOWED_MODELS = parseList(process.env.ALLOWED_MODELS || DEFAULT_MODEL);
+const ALLOWED_ORIGINS = parseList(process.env.ALLOWED_ORIGINS || "");
 const APP_NAME = "AlphaCodes AI";
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const RATE_LIMIT_MAX_REQUESTS = 30;
@@ -357,10 +358,26 @@ function isAllowedOrigin(req) {
 
   try {
     const originUrl = new URL(origin);
-    return originUrl.host === req.headers.host;
+    const requestHost = req.headers.host || "";
+
+    if (originUrl.host === requestHost) return true;
+    if (ALLOWED_ORIGINS.includes(originUrl.origin)) return true;
+
+    return isLocalOrPrivateHost(originUrl.hostname);
   } catch {
     return false;
   }
+}
+
+function isLocalOrPrivateHost(hostname) {
+  const host = String(hostname || "").toLowerCase();
+
+  if (host === "localhost" || host === "127.0.0.1" || host === "::1") return true;
+  if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(host)) return true;
+  if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host)) return true;
+  if (/^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(host)) return true;
+
+  return false;
 }
 
 function checkRateLimit(req) {
