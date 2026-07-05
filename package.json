@@ -1,13 +1,21 @@
 {
-  "name": "alpacode-chat-ai",
+  "name": "alphacodes-ai",
   "version": "1.0.0",
   "private": true,
-  "description": "Chat AI lokal dengan proxy OpenAI-compatible.",
+  "description": "AlphaCodes AI chat app dengan React, Vite, dan proxy OpenAI-compatible.",
   "type": "module",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js",
-    "check": "node --check server.js"
+    "dev": "vite --host 0.0.0.0",
+    "server": "node server.js",
+    "build": "vite build",
+    "start": "npm run build && node server.js",
+    "check": "node --check server.js && vite build"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^6.0.7",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   },
   "engines": {
     "node": ">=18"

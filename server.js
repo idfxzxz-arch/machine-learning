@@ -6,7 +6,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const publicDir = path.join(__dirname, "public");
+const distDir = path.join(__dirname, "dist");
+const publicDir = existsSync(distDir) ? distDir : path.join(__dirname, "public");
 
 loadEnv(path.join(__dirname, ".env"));
 
@@ -38,6 +39,9 @@ const mimeTypes = new Map([
   [".css", "text/css; charset=utf-8"],
   [".js", "text/javascript; charset=utf-8"],
   [".json", "application/json; charset=utf-8"],
+  [".map", "application/json; charset=utf-8"],
+  [".txt", "text/plain; charset=utf-8"],
+  [".woff2", "font/woff2"],
   [".svg", "image/svg+xml"],
   [".png", "image/png"],
   [".jpg", "image/jpeg"],
@@ -94,7 +98,7 @@ server.on("error", (error) => {
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`AlpaCode Chat AI berjalan di http://127.0.0.1:${PORT}`);
+  console.log(`AlphaCodes AI berjalan di http://127.0.0.1:${PORT}`);
   if (HOST === "0.0.0.0") {
     for (const address of getLocalIPv4Addresses()) {
       console.log(`Akses jaringan lokal: http://${address}:${PORT}`);
@@ -247,6 +251,12 @@ async function serveStatic(requestPath, res) {
   const filePath = existsSync(resolvedPath) && statSync(resolvedPath).isFile()
     ? resolvedPath
     : path.join(publicDir, "index.html");
+
+  if (!existsSync(filePath)) {
+    return sendJson(res, 404, {
+      error: "Frontend belum dibuild. Jalankan npm run build terlebih dahulu."
+    });
+  }
 
   const ext = path.extname(filePath).toLowerCase();
   const contentType = mimeTypes.get(ext) || "application/octet-stream";
