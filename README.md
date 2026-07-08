@@ -36,7 +36,7 @@ Nilai koneksi ada di `.env`.
 ```env
 PORT=3000
 HOST=0.0.0.0
-OPENAI_BASE_URL=http://100.70.61.19:20128/v1
+OPENAI_BASE_URL=https://ai.teman-umkm.my.id/v1
 OPENAI_API_KEY=isi_api_key_di_sini
 DEFAULT_MODEL=cx/gpt-5.5
 ALLOWED_MODELS=
@@ -51,7 +51,28 @@ Kosongkan `ALLOWED_MODELS` untuk menampilkan semua model chat publik dari endpoi
 `VITE_API_BASE_URL` boleh dikosongkan jika frontend dan backend berada di domain yang sama. Jika frontend static berada di domain berbeda, isi dengan URL backend, lalu build ulang.
 
 Jika engine AI berjalan di mesin yang sama dengan app ini, gunakan `http://127.0.0.1:20128/v1`.
-Jika engine AI berada di mesin lain, baru gunakan IP LAN/Tailscale mesin AI, misalnya `http://100.70.61.19:20128/v1`.
+Jika deploy ke Vercel atau hosting publik, gunakan endpoint HTTPS publik yang bisa dijangkau dari internet, misalnya `https://ai.teman-umkm.my.id/v1`. Jangan gunakan IP lokal/Tailscale seperti `127.0.0.1`, `192.168.*`, atau `100.*` untuk deployment publik.
+
+## Deploy Vercel
+
+Project ini memakai Vercel Functions di folder `api/` untuk endpoint `/api/config`, `/api/models`, dan `/api/chat`.
+
+Set environment variable berikut di Vercel Project Settings:
+
+```env
+OPENAI_BASE_URL=https://ai.teman-umkm.my.id/v1
+OPENAI_API_KEY=isi_api_key_di_sini
+DEFAULT_MODEL=cx/gpt-5.5
+ALLOWED_MODELS=
+AI_MAX_TOKENS=2048
+```
+
+Setelah deploy, tes:
+
+```bash
+curl https://domain-vercel-kamu.vercel.app/api/config
+curl https://domain-vercel-kamu.vercel.app/api/models
+```
 
 ## Deploy Domain
 

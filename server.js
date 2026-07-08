@@ -52,7 +52,7 @@ const mimeTypes = new Map([
   [".ico", "image/x-icon"]
 ]);
 
-const server = createServer(async (req, res) => {
+export async function handleRequest(req, res) {
   try {
     const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
     const corsOrigin = getAllowedCorsOrigin(req);
@@ -102,26 +102,39 @@ const server = createServer(async (req, res) => {
       res.end();
     }
   }
-});
+}
 
-server.on("error", (error) => {
-  if (error.code === "EADDRINUSE") {
-    console.error(`Port ${PORT} sedang dipakai. Tutup proses lama atau ubah PORT di .env.`);
-    process.exit(1);
-  }
+if (isMainModule()) {
+  startServer();
+}
 
-  console.error(error);
-  process.exit(1);
-});
+function startServer() {
+  const server = createServer(handleRequest);
 
-server.listen(PORT, HOST, () => {
-  console.log(`AlphaCodes AI berjalan di http://127.0.0.1:${PORT}`);
-  if (HOST === "0.0.0.0") {
-    for (const address of getLocalIPv4Addresses()) {
-      console.log(`Akses jaringan lokal: http://${address}:${PORT}`);
+  server.on("error", (error) => {
+    if (error.code === "EADDRINUSE") {
+      console.error(`Port ${PORT} sedang dipakai. Tutup proses lama atau ubah PORT di .env.`);
+      process.exit(1);
     }
-  }
-});
+
+    console.error(error);
+    process.exit(1);
+  });
+
+  server.listen(PORT, HOST, () => {
+    console.log(`AlphaCodes AI berjalan di http://127.0.0.1:${PORT}`);
+    if (HOST === "0.0.0.0") {
+      for (const address of getLocalIPv4Addresses()) {
+        console.log(`Akses jaringan lokal: http://${address}:${PORT}`);
+      }
+    }
+  });
+}
+
+function isMainModule() {
+  const entryPoint = process.argv[1];
+  return entryPoint && path.resolve(entryPoint) === fileURLToPath(import.meta.url);
+}
 
 async function handleModels(res) {
   const upstream = await callUpstream("/models", {
@@ -415,7 +428,8 @@ function isLocalOrPrivateHost(hostname) {
 }
 
 function checkRateLimit(req) {
-  const key = req.socket.remoteAddress || "unknown";
+  const forwardedFor = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim();
+  const key = req.socket?.remoteAddress || forwardedFor || "unknown";
   const now = Date.now();
   const bucket = rateLimitBuckets.get(key) || { count: 0, resetAt: now + RATE_LIMIT_WINDOW_MS };
 
@@ -458,15 +472,28 @@ function isRestrictedRequest(messages) {
 }
 
 async function readJsonBody(req) {
+  if (req.body && typeof req.body === "object" && !Buffer.isBuffer(req.body)) {
+    return req.body;
+  }
+
+  if (typeof req.body === "string" || Buffer.isBuffer(req.body)) {
+    const rawBody = Buffer.isBuffer(req.body) ? req.body.toString("utf8") : req.body;
+    if (Buffer.byteLength(rawBody, "utf8") > 2 * 1024 * 1024) {
+      throw new Error("Body terlalu besar.");
+    }
+    return rawBody ? JSON.parse(rawBody) : {};
+  }
+
   const chunks = [];
   let size = 0;
 
   for await (const chunk of req) {
-    size += chunk.length;
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    size += buffer.length;
     if (size > 2 * 1024 * 1024) {
       throw new Error("Body terlalu besar.");
     }
-    chunks.push(chunk);
+    chunks.push(buffer);
   }
 
   const raw = Buffer.concat(chunks).toString("utf8");
