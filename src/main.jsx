@@ -576,8 +576,8 @@ function EmptyState({ onPickSuggestion }) {
     <div className="empty-state">
       <div className="empty-block">
         <div className="assistant-kicker">AlphaCodes AI</div>
-        <h1>Apa yang sedang dikerjakan?</h1>
-        <p>Pilih contoh di bawah atau tulis kebutuhan kamu langsung.</p>
+        <h1>Mulai dari bahan mentah.</h1>
+        <p>Ringkas, susun, atau rapikan tanpa kehilangan konteks kerja.</p>
         <div className="suggestions">
           {suggestions.map((suggestion) => (
             <button
