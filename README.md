@@ -34,22 +34,24 @@ Frontend dev berjalan di `http://127.0.0.1:5173` dan proxy `/api` ke backend `ht
 Nilai koneksi ada di `.env`.
 
 ```env
+PORT=3000
 HOST=0.0.0.0
-OPENAI_BASE_URL=http://192.168.1.13:20128/v1
+OPENAI_BASE_URL=http://100.70.61.19:20128/v1
 OPENAI_API_KEY=isi_api_key_di_sini
 DEFAULT_MODEL=cx/gpt-5.5
-ALLOWED_MODELS=cx/gpt-5.5,cx/gpt-5.4,cx/gpt-5.4-mini
+ALLOWED_MODELS=
 AI_MAX_TOKENS=2048
 ALLOWED_ORIGINS=
 VITE_API_BASE_URL=
 ```
 
-`PORT` sengaja tidak perlu ditulis di `.env`. Jika server/hosting memberi environment variable `PORT`, app akan mengikuti nilai itu. Jika tidak ada, app otomatis fallback ke `3000`.
+`PORT` opsional. Jika server/hosting memberi environment variable `PORT`, app akan mengikuti nilai itu. Jika tidak ada, app otomatis fallback ke `3000`.
+Kosongkan `ALLOWED_MODELS` untuk menampilkan semua model chat publik dari endpoint. Isi dengan daftar model dipisah koma jika ingin membatasi pilihan.
 `ALLOWED_ORIGINS` boleh dikosongkan untuk localhost/LAN. Untuk domain publik, isi dengan origin lengkap, misalnya `https://ai.alphacodes.id`.
 `VITE_API_BASE_URL` boleh dikosongkan jika frontend dan backend berada di domain yang sama. Jika frontend static berada di domain berbeda, isi dengan URL backend, lalu build ulang.
 
 Jika engine AI berjalan di mesin yang sama dengan app ini, gunakan `http://127.0.0.1:20128/v1`.
-Jika engine AI berada di mesin lain, baru gunakan IP LAN mesin AI, misalnya `http://192.168.1.13:20128/v1`.
+Jika engine AI berada di mesin lain, baru gunakan IP LAN/Tailscale mesin AI, misalnya `http://100.70.61.19:20128/v1`.
 
 ## Deploy Domain
 

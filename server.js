@@ -16,7 +16,9 @@ const HOST = process.env.HOST || "0.0.0.0";
 const BASE_URL = normalizeBaseUrl(process.env.OPENAI_BASE_URL || "http://127.0.0.1:20128/v1");
 const API_KEY = process.env.OPENAI_API_KEY || "";
 const DEFAULT_MODEL = process.env.DEFAULT_MODEL || "";
-const ALLOWED_MODELS = parseList(process.env.ALLOWED_MODELS || DEFAULT_MODEL);
+const ALLOWED_MODELS = parseList(
+  Object.hasOwn(process.env, "ALLOWED_MODELS") ? process.env.ALLOWED_MODELS : DEFAULT_MODEL
+);
 const ALLOWED_ORIGINS = parseList(process.env.ALLOWED_ORIGINS || "");
 const APP_NAME = "AlphaCodes AI";
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
@@ -348,9 +350,14 @@ function parseList(value) {
 
 function selectModel(requestedModel) {
   const requested = String(requestedModel || "").trim();
-  if (ALLOWED_MODELS.length && ALLOWED_MODELS.includes(requested)) return requested;
-  if (ALLOWED_MODELS.length) return ALLOWED_MODELS[0];
-  return DEFAULT_MODEL || requested;
+  if (ALLOWED_MODELS.length) {
+    if (requested && ALLOWED_MODELS.includes(requested)) return requested;
+    return ALLOWED_MODELS[0] || DEFAULT_MODEL;
+  }
+
+  if (requested && isPublicChatModel(requested)) return requested;
+  if (DEFAULT_MODEL && isPublicChatModel(DEFAULT_MODEL)) return DEFAULT_MODEL;
+  return "";
 }
 
 function filterPublicModels(models) {

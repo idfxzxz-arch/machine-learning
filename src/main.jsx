@@ -276,6 +276,16 @@ function App() {
     }));
   }
 
+  function selectModel(model) {
+    setState((prev) => ({
+      ...prev,
+      settings: {
+        ...prev.settings,
+        model
+      }
+    }));
+  }
+
   function exportConversation() {
     const lines = [`# ${activeConversation.title || "Chat"}`, ""];
     for (const message of activeConversation.messages) {
@@ -416,8 +426,20 @@ function App() {
               <div className="chat-meta">{activeConversation.messages.length} pesan</div>
             </div>
             <div className="top-actions">
-              <select className="model-select hidden" aria-label="Model AI" value={state.settings.model} readOnly>
-                <option value={state.settings.model}>{state.settings.model || "Model"}</option>
+              <select
+                className="model-select"
+                aria-label="Model AI"
+                value={state.settings.model}
+                disabled={isBusy || !state.models.length}
+                onChange={(event) => selectModel(event.target.value)}
+              >
+                {state.models.length ? (
+                  state.models.map((model) => (
+                    <option key={model.id} value={model.id}>{model.id}</option>
+                  ))
+                ) : (
+                  <option value={state.settings.model}>{state.settings.model || "Model"}</option>
+                )}
               </select>
               <button className="icon-button" type="button" title="Regenerate" aria-label="Regenerate" onClick={regenerateLast} disabled={isBusy}>
                 <Icon name="refresh" />
