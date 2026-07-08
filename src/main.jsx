@@ -347,6 +347,14 @@ function App() {
     <>
       <IconDefinitions />
       <div className="app-shell">
+        {sidebarOpen && (
+          <button
+            className="sidebar-backdrop mobile-only"
+            type="button"
+            aria-label="Tutup menu"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
         <aside className={`sidebar${sidebarOpen ? " open" : ""}`} id="sidebar">
           <div className="brand-row">
             <div className="brand-mark">AC</div>
@@ -441,13 +449,13 @@ function App() {
                   <option value={state.settings.model}>{state.settings.model || "Model"}</option>
                 )}
               </select>
-              <button className="icon-button" type="button" title="Regenerate" aria-label="Regenerate" onClick={regenerateLast} disabled={isBusy}>
+              <button className="icon-button secondary-action" type="button" title="Regenerate" aria-label="Regenerate" onClick={regenerateLast} disabled={isBusy}>
                 <Icon name="refresh" />
               </button>
-              <button className="icon-button" type="button" title="Export" aria-label="Export" onClick={exportConversation}>
+              <button className="icon-button secondary-action" type="button" title="Export" aria-label="Export" onClick={exportConversation}>
                 <Icon name="download" />
               </button>
-              <button className="icon-button" type="button" title="Tema" aria-label="Tema" onClick={toggleTheme}>
+              <button className="icon-button theme-action" type="button" title="Tema" aria-label="Tema" onClick={toggleTheme}>
                 <Icon name="sun" />
               </button>
             </div>

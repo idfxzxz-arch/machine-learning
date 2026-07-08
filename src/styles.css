@@ -815,9 +815,17 @@ svg {
     box-shadow: var(--shadow);
   }
 
-  .sidebar.open {
-    transform: translateX(0);
-  }
+.sidebar.open {
+  transform: translateX(0);
+}
+
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 14;
+  border: 0;
+  background: rgba(15, 20, 27, 0.42);
+}
 
   .topbar {
     flex-wrap: wrap;
@@ -1060,15 +1068,18 @@ svg {
 
   .topbar {
     display: grid;
-    grid-template-columns: 40px minmax(0, 1fr) auto;
-    gap: 9px;
+    grid-template-columns: 40px minmax(0, 1fr) 40px;
+    grid-template-rows: 40px 40px;
+    gap: 8px;
     align-items: center;
-    min-height: 58px;
+    min-height: 98px;
     padding: 9px 10px;
     flex-wrap: nowrap;
   }
 
   .title-wrap {
+    grid-column: 2;
+    grid-row: 1;
     min-width: 0;
     flex-basis: auto;
   }
@@ -1076,6 +1087,7 @@ svg {
   .chat-title-input {
     font-size: 15px;
     line-height: 1.2;
+    text-overflow: ellipsis;
   }
 
   .chat-meta {
@@ -1083,13 +1095,10 @@ svg {
   }
 
   .top-actions {
-    width: auto;
-    gap: 6px;
-    justify-content: end;
+    display: contents;
   }
 
-  #regenerateBtn,
-  #exportBtn {
+  .secondary-action {
     display: none;
   }
 
@@ -1098,9 +1107,28 @@ svg {
     height: 38px;
   }
 
+  .topbar > .icon-button {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .theme-action {
+    grid-column: 3;
+    grid-row: 1;
+    justify-self: end;
+  }
+
+  .model-select {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
+    min-width: 0;
+    height: 40px;
+  }
+
   .messages {
     gap: 22px;
-    padding: 20px 14px 18px;
+    padding: 18px 12px 18px;
   }
 
   .empty-state {
@@ -1159,7 +1187,7 @@ svg {
   .message.user .bubble {
     display: block;
     width: fit-content;
-    max-width: min(88vw, 100%);
+    max-width: min(86vw, 100%);
     margin-left: auto;
     border-radius: 17px 17px 5px 17px;
   }
@@ -1183,7 +1211,7 @@ svg {
   }
 
   .composer-wrap {
-    padding: 9px 10px calc(10px + env(safe-area-inset-bottom));
+    padding: 8px 10px calc(10px + env(safe-area-inset-bottom));
   }
 
   .composer {
@@ -1208,5 +1236,31 @@ svg {
 
   .status-line {
     display: none;
+  }
+}
+
+@media (max-width: 420px) {
+  .sidebar {
+    width: min(292px, 88vw);
+  }
+
+  .topbar {
+    padding-inline: 8px;
+  }
+
+  .messages {
+    padding-inline: 10px;
+  }
+
+  .message-content {
+    font-size: 14px;
+  }
+
+  .composer-wrap {
+    padding-inline: 8px;
+  }
+
+  .composer textarea::placeholder {
+    font-size: 14px;
   }
 }
