@@ -1232,7 +1232,26 @@ svg {
   }
 
   .message.assistant .bubble {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
     max-width: 100%;
+  }
+
+  .message.assistant .message-content {
+    order: 1;
+  }
+
+  .message.assistant .message-header {
+    position: static;
+    order: 2;
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 0;
+  }
+
+  .message.assistant .message-actions {
+    opacity: 1;
   }
 
   .message.user .bubble {
@@ -1252,9 +1271,14 @@ svg {
     padding: 10px 14px;
   }
 
+  .message.assistant .message-content > :last-child {
+    margin-bottom: 0;
+  }
+
   .message-action {
-    width: 30px;
-    height: 30px;
+    width: 34px;
+    height: 34px;
+    background: var(--surface);
   }
 
   .message-header {
