@@ -39,14 +39,14 @@ HOST=0.0.0.0
 OPENAI_BASE_URL=https://ai.teman-umkm.my.id/v1
 OPENAI_API_KEY=isi_api_key_di_sini
 DEFAULT_MODEL=cx/gpt-5.5
-ALLOWED_MODELS=
+MODEL_ALLOWLIST=
 AI_MAX_TOKENS=2048
 ALLOWED_ORIGINS=
 VITE_API_BASE_URL=
 ```
 
 `PORT` opsional. Jika server/hosting memberi environment variable `PORT`, app akan mengikuti nilai itu. Jika tidak ada, app otomatis fallback ke `3000`.
-Kosongkan `ALLOWED_MODELS` untuk menampilkan semua model chat publik dari endpoint. Isi dengan daftar model dipisah koma jika ingin membatasi pilihan.
+Kosongkan `MODEL_ALLOWLIST` untuk menampilkan semua model dari endpoint `/v1/models`. Isi dengan daftar model dipisah koma jika ingin membatasi pilihan.
 `ALLOWED_ORIGINS` boleh dikosongkan untuk localhost/LAN. Untuk domain publik, isi dengan origin lengkap, misalnya `https://ai.alphacodes.id`.
 `VITE_API_BASE_URL` boleh dikosongkan jika frontend dan backend berada di domain yang sama. Jika frontend static berada di domain berbeda, isi dengan URL backend, lalu build ulang.
 
@@ -63,7 +63,7 @@ Set environment variable berikut di Vercel Project Settings:
 OPENAI_BASE_URL=https://ai.teman-umkm.my.id/v1
 OPENAI_API_KEY=isi_api_key_di_sini
 DEFAULT_MODEL=cx/gpt-5.5
-ALLOWED_MODELS=
+MODEL_ALLOWLIST=
 AI_MAX_TOKENS=2048
 ```
 

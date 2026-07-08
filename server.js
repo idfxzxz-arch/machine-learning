@@ -16,9 +16,7 @@ const HOST = process.env.HOST || "0.0.0.0";
 const BASE_URL = normalizeBaseUrl(process.env.OPENAI_BASE_URL || "http://127.0.0.1:20128/v1");
 const API_KEY = process.env.OPENAI_API_KEY || "";
 const DEFAULT_MODEL = process.env.DEFAULT_MODEL || "";
-const ALLOWED_MODELS = parseList(
-  Object.hasOwn(process.env, "ALLOWED_MODELS") ? process.env.ALLOWED_MODELS : DEFAULT_MODEL
-);
+const MODEL_ALLOWLIST = parseList(process.env.MODEL_ALLOWLIST || "");
 const ALLOWED_ORIGINS = parseList(process.env.ALLOWED_ORIGINS || "");
 const APP_NAME = "AlphaCodes AI";
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
@@ -153,7 +151,7 @@ async function handleModels(res) {
     ? data.data.map((model) => ({ id: model.id })).filter((model) => model.id)
     : [];
 
-  const publicModels = filterPublicModels(models);
+  const publicModels = filterSelectableModels(models);
   publicModels.sort((a, b) => a.id.localeCompare(b.id));
   return sendJson(res, 200, { models: publicModels });
 }
@@ -363,27 +361,20 @@ function parseList(value) {
 
 function selectModel(requestedModel) {
   const requested = String(requestedModel || "").trim();
-  if (ALLOWED_MODELS.length) {
-    if (requested && ALLOWED_MODELS.includes(requested)) return requested;
-    return ALLOWED_MODELS[0] || DEFAULT_MODEL;
+  if (MODEL_ALLOWLIST.length) {
+    if (requested && MODEL_ALLOWLIST.includes(requested)) return requested;
+    return MODEL_ALLOWLIST[0] || DEFAULT_MODEL;
   }
 
-  if (requested && isPublicChatModel(requested)) return requested;
-  if (DEFAULT_MODEL && isPublicChatModel(DEFAULT_MODEL)) return DEFAULT_MODEL;
-  return "";
+  return requested || DEFAULT_MODEL;
 }
 
-function filterPublicModels(models) {
-  const safeModels = models.filter((model) => isPublicChatModel(model.id));
-  if (!ALLOWED_MODELS.length) return safeModels;
+function filterSelectableModels(models) {
+  const selectableModels = models.filter((model) => model.id);
+  if (!MODEL_ALLOWLIST.length) return selectableModels;
 
-  const allowed = safeModels.filter((model) => ALLOWED_MODELS.includes(model.id));
-  return allowed.length ? allowed : safeModels;
-}
-
-function isPublicChatModel(modelId) {
-  const value = String(modelId || "").toLowerCase();
-  return value && !value.includes("codex") && !value.includes("review");
+  const allowed = selectableModels.filter((model) => MODEL_ALLOWLIST.includes(model.id));
+  return allowed.length ? allowed : selectableModels;
 }
 
 function isAllowedOrigin(req) {
