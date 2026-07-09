@@ -662,94 +662,97 @@ function ModelPicker({ models, value, disabled, onSelect }) {
       </button>
 
       {open && (
-        <div className="model-panel" role="dialog" aria-label="Pilih model AI">
-          <div className="model-panel-head">
-            <div>
-              <div className="model-panel-title">Model AI</div>
-              <div className="model-panel-subtitle">{models.length} model tersedia dari endpoint</div>
+        <>
+          <button className="model-scrim" type="button" aria-label="Tutup pilihan model" onClick={() => setOpen(false)} />
+          <div className="model-panel" role="dialog" aria-label="Pilih model AI">
+            <div className="model-panel-head">
+              <div>
+                <div className="model-panel-title">Model AI</div>
+                <div className="model-panel-subtitle">{models.length} model tersedia dari endpoint</div>
+              </div>
+              <button className="mini-button model-close" type="button" aria-label="Tutup pilihan model" onClick={() => setOpen(false)}>
+                <Icon name="x" />
+              </button>
             </div>
-            <button className="mini-button model-close" type="button" aria-label="Tutup pilihan model" onClick={() => setOpen(false)}>
-              <Icon name="x" />
-            </button>
-          </div>
 
-          <label className="model-search">
-            <input
-              type="search"
-              placeholder="Cari model, provider, atau kemampuan"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-            />
-          </label>
+            <label className="model-search">
+              <input
+                type="search"
+                placeholder="Cari model, provider, atau kemampuan"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+              />
+            </label>
 
-          <div className="model-filters" role="tablist" aria-label="Filter model">
-            {filters.map((filter) => (
-              <button
-                className={`model-filter${intent === filter.id ? " active" : ""}`}
-                type="button"
-                key={filter.id}
-                disabled={!filter.count}
-                onClick={() => setIntent(filter.id)}
-              >
-                <span>{filter.label}</span>
-                <span>{filter.count}</span>
-              </button>
-            ))}
-          </div>
+            <div className="model-filters" role="tablist" aria-label="Filter model">
+              {filters.map((filter) => (
+                <button
+                  className={`model-filter${intent === filter.id ? " active" : ""}`}
+                  type="button"
+                  key={filter.id}
+                  disabled={!filter.count}
+                  onClick={() => setIntent(filter.id)}
+                >
+                  <span>{filter.label}</span>
+                  <span>{filter.count}</span>
+                </button>
+              ))}
+            </div>
 
-          <div className="model-filters provider-filters" role="tablist" aria-label="Filter sumber model">
-            {sourceFilters.map((filter) => (
-              <button
-                className={`model-filter source-filter${source === filter.id ? " active" : ""}`}
-                type="button"
-                key={filter.id}
-                disabled={!filter.count}
-                onClick={() => setSource(filter.id)}
-              >
-                <span>{filter.label}</span>
-                <span>{filter.count}</span>
-              </button>
-            ))}
-          </div>
+            <div className="model-filters provider-filters" role="tablist" aria-label="Filter sumber model">
+              {sourceFilters.map((filter) => (
+                <button
+                  className={`model-filter source-filter${source === filter.id ? " active" : ""}`}
+                  type="button"
+                  key={filter.id}
+                  disabled={!filter.count}
+                  onClick={() => setSource(filter.id)}
+                >
+                  <span>{filter.label}</span>
+                  <span>{filter.count}</span>
+                </button>
+              ))}
+            </div>
 
-          <div className="model-list">
-            {groupedModels.length ? (
-              groupedModels.map((group) => (
-                <section className="model-group" key={group.provider}>
-                  <div className="model-group-title">
-                    <span>{group.label}</span>
-                    <span>{group.items.length}</span>
-                  </div>
-                  <div className="model-options">
-                    {group.items.map((model) => (
-                      <button
-                        className={`model-option${model.id === value ? " selected" : ""}`}
-                        type="button"
-                        key={model.id}
-                        onClick={() => pickModel(model.id)}
-                      >
-                        <span className="model-option-main">
-                          <span className="model-option-name">{model.shortName}</span>
-                          <span className="model-option-id">{model.id}</span>
-                        </span>
-                        <span className="model-option-side">
-                          <span className="model-badges">
-                            {model.badges.map((badge) => (
-                              <span className="model-badge" key={badge}>{badge}</span>
-                            ))}
+            <div className="model-list">
+              {groupedModels.length ? (
+                groupedModels.map((group) => (
+                  <section className="model-group" key={group.provider}>
+                    <div className="model-group-title">
+                      <span>{group.label}</span>
+                      <span>{group.items.length}</span>
+                    </div>
+                    <div className="model-options">
+                      {group.items.map((model) => (
+                        <button
+                          className={`model-option${model.id === value ? " selected" : ""}`}
+                          type="button"
+                          key={model.id}
+                          onClick={() => pickModel(model.id)}
+                        >
+                          <span className="model-option-main">
+                            <span className="model-option-name">{model.shortName}</span>
+                            <span className="model-option-id">{model.id}</span>
                           </span>
-                          {model.id === value && <span className="model-selected"><Icon name="check" /></span>}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </section>
-              ))
-            ) : (
-              <div className="model-empty">Model tidak ditemukan.</div>
-            )}
+                          <span className="model-option-side">
+                            <span className="model-badges">
+                              {model.badges.map((badge) => (
+                                <span className="model-badge" key={badge}>{badge}</span>
+                              ))}
+                            </span>
+                            {model.id === value && <span className="model-selected"><Icon name="check" /></span>}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                ))
+              ) : (
+                <div className="model-empty">Model tidak ditemukan.</div>
+              )}
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

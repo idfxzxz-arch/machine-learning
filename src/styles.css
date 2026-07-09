@@ -317,6 +317,8 @@ svg {
 }
 
 .topbar {
+  position: relative;
+  z-index: 40;
   display: flex;
   align-items: center;
   gap: 14px;
@@ -423,11 +425,34 @@ svg {
   transform: rotate(180deg);
 }
 
+.model-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 24;
+  border: 0;
+  border-radius: 0;
+  background: rgba(15, 20, 27, 0.18);
+  cursor: default;
+}
+
+.model-scrim:active {
+  transform: none;
+}
+
+[data-theme="dark"] .model-scrim {
+  background: rgba(5, 9, 14, 0.54);
+}
+
+.model-picker.open .model-trigger {
+  position: relative;
+  z-index: 34;
+}
+
 .model-panel {
   position: absolute;
   top: calc(100% + 10px);
   right: 0;
-  z-index: 30;
+  z-index: 36;
   display: grid;
   width: min(680px, calc(100vw - 32px));
   max-height: min(70vh, 620px);
@@ -1148,7 +1173,7 @@ svg {
   .sidebar {
     position: fixed;
     inset: 0 auto 0 0;
-    z-index: 15;
+    z-index: 80;
     width: min(310px, 86vw);
     transform: translateX(-100%);
     transition: transform 0.18s ease;
@@ -1162,7 +1187,7 @@ svg {
 .sidebar-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 14;
+  z-index: 70;
   border: 0;
   background: rgba(15, 20, 27, 0.42);
 }
@@ -1186,6 +1211,20 @@ svg {
     flex: 1;
     width: min(100%, 340px);
     min-width: 0;
+  }
+
+  .model-panel {
+    position: fixed;
+    top: 120px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+    max-height: calc(100dvh - 150px);
+    overflow: hidden;
+  }
+
+  .model-list {
+    max-height: calc(100dvh - 330px);
   }
 
   .model-select {
