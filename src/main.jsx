@@ -3,6 +3,9 @@ import { createRoot } from "react-dom/client";
 import "./styles.css";
 
 const STORE_KEY = "alphacodes-chat-ai:v3";
+const WEB_MODE_KEY = "alphacodes-chat-ai:web-mode:v1";
+const ADMIN_PATH = "/admin";
+const RESTRICTION_PATH = "/pembatasan";
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
 const API_BACKEND_MISSING_MESSAGE =
   "API backend belum terhubung. Pastikan domain ini diarahkan ke server Node, bukan hanya file frontend.";
@@ -37,6 +40,8 @@ const suggestions = [
 
 function App() {
   const [state, setState] = useState(loadState);
+  const [route, setRoute] = useState(getRoute);
+  const [webMode, setWebMode] = useState(loadWebMode);
   const [prompt, setPrompt] = useState("");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("Siap");
@@ -50,6 +55,9 @@ function App() {
   const messagesRef = useRef(null);
   const abortRef = useRef(null);
   const toastTimerRef = useRef(null);
+  const isAdminRoute = route === "admin";
+  const isRestrictedRoute = route === "restricted";
+  const isRestrictionActive = Boolean(webMode.restricted);
 
   const activeConversation = useMemo(
     () => getActiveConversation(state),
@@ -81,7 +89,36 @@ function App() {
   }, [state]);
 
   useEffect(() => {
-    loadConfigAndModels();
+    if (!isAdminRoute && !isRestrictedRoute && !isRestrictionActive) {
+      loadConfigAndModels();
+    }
+  }, [isAdminRoute, isRestrictedRoute, isRestrictionActive]);
+
+  useEffect(() => {
+    function handlePopState() {
+      setRoute(getRoute());
+    }
+
+    function handleStorage(event) {
+      if (event.key === WEB_MODE_KEY) {
+        const nextMode = loadWebMode();
+        setWebMode(nextMode);
+        if (nextMode.restricted && getRoute() === "chat") {
+          setRoute("restricted");
+          window.history.replaceState({}, "", RESTRICTION_PATH);
+        } else if (!nextMode.restricted && getRoute() === "restricted") {
+          setRoute("chat");
+          window.history.replaceState({}, "", "/");
+        }
+      }
+    }
+
+    window.addEventListener("popstate", handlePopState);
+    window.addEventListener("storage", handleStorage);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      window.removeEventListener("storage", handleStorage);
+    };
   }, []);
 
   useEffect(() => {
@@ -351,6 +388,45 @@ function App() {
     copyText(code);
   }
 
+  function navigateTo(path) {
+    window.history.pushState({}, "", path);
+    setRoute(getRoute());
+    setSidebarOpen(false);
+  }
+
+  function updateRestrictionMode(restricted) {
+    const nextMode = {
+      restricted,
+      updatedAt: Date.now()
+    };
+    saveWebMode(nextMode);
+    setWebMode(nextMode);
+    navigateTo(restricted ? RESTRICTION_PATH : "/");
+  }
+
+  if (isAdminRoute) {
+    return (
+      <>
+        <IconDefinitions />
+        <AdminPanel
+          webMode={webMode}
+          onEnableRestriction={() => updateRestrictionMode(true)}
+          onDisableRestriction={() => updateRestrictionMode(false)}
+          onOpenChat={() => navigateTo(isRestrictionActive ? RESTRICTION_PATH : "/")}
+        />
+      </>
+    );
+  }
+
+  if (isRestrictionActive || isRestrictedRoute) {
+    return (
+      <>
+        <IconDefinitions />
+        <RestrictionPage onOpenAdmin={() => navigateTo(ADMIN_PATH)} />
+      </>
+    );
+  }
+
   return (
     <>
       <IconDefinitions />
@@ -416,8 +492,14 @@ function App() {
           </nav>
 
           <div className="sidebar-footer">
-            <div className={`connection-dot ${connection.status === "ok" ? "ok" : connection.status === "bad" ? "bad" : ""}`} />
-            <span>{connection.text}</span>
+            <div className="connection-state">
+              <div className={`connection-dot ${connection.status === "ok" ? "ok" : connection.status === "bad" ? "bad" : ""}`} />
+              <span>{connection.text}</span>
+            </div>
+            <button className="footer-admin" type="button" onClick={() => navigateTo(ADMIN_PATH)}>
+              <Icon name="lock" />
+              <span>Admin</span>
+            </button>
           </div>
         </aside>
 
@@ -568,6 +650,103 @@ async function readJsonResponse(response) {
   }
 
   return response.json();
+}
+
+function AdminPanel({ webMode, onEnableRestriction, onDisableRestriction, onOpenChat }) {
+  const restricted = Boolean(webMode.restricted);
+
+  return (
+    <main className="admin-shell">
+      <div className="admin-top">
+        <button className="admin-brand" type="button" onClick={onOpenChat}>
+          <span className="brand-mark">AC</span>
+          <span>
+            <span className="brand-name">AlphaCodes</span>
+            <span className="brand-subtitle">Admin Panel</span>
+          </span>
+        </button>
+        <button className="admin-secondary compact" type="button" onClick={onOpenChat}>
+          Buka web
+        </button>
+      </div>
+
+      <section className="admin-card admin-card-main">
+        <div className={`admin-status ${restricted ? "restricted" : "normal"}`}>
+          <span className="admin-status-dot" />
+          <span>{restricted ? "Pembatasan aktif" : "Mode normal"}</span>
+        </div>
+        <h1>Admin Panel</h1>
+        <p>Atur mode akses web chat AI dari satu tempat.</p>
+
+        <div className="admin-control">
+          <div>
+            <div className="admin-control-title">Mode web</div>
+            <div className="admin-control-copy">
+              Saat pembatasan aktif, halaman chat otomatis diganti menjadi halaman bertuliskan pembatasan.
+            </div>
+          </div>
+          <div className={`admin-switch ${restricted ? "on" : ""}`} aria-hidden="true">
+            <span />
+          </div>
+        </div>
+
+        <div className="admin-actions">
+          <button
+            className="primary-action admin-primary"
+            type="button"
+            disabled={restricted}
+            onClick={onEnableRestriction}
+          >
+            <Icon name="lock" />
+            <span>Aktifkan pembatasan</span>
+          </button>
+          <button
+            className="admin-secondary"
+            type="button"
+            disabled={!restricted}
+            onClick={onDisableRestriction}
+          >
+            Matikan pembatasan
+          </button>
+        </div>
+      </section>
+
+      <section className="admin-card admin-detail">
+        <h2>Status</h2>
+        <div className="admin-detail-grid">
+          <div>
+            <span>Mode</span>
+            <strong>{restricted ? "Pembatasan" : "Normal"}</strong>
+          </div>
+          <div>
+            <span>Terakhir diubah</span>
+            <strong>{formatAdminTime(webMode.updatedAt)}</strong>
+          </div>
+          <div>
+            <span>Halaman tujuan</span>
+            <strong>{restricted ? RESTRICTION_PATH : "/"}</strong>
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function RestrictionPage({ onOpenAdmin }) {
+  return (
+    <main className="restriction-shell">
+      <section className="restriction-card">
+        <div className="restriction-mark">
+          <Icon name="lock" />
+        </div>
+        <h1>Pembatasan</h1>
+        <p>Akses chat AI sedang dibatasi oleh admin.</p>
+        <button className="admin-secondary compact" type="button" onClick={onOpenAdmin}>
+          Admin panel
+        </button>
+      </section>
+    </main>
+  );
 }
 
 function EmptyState({ modelFeaturePack, onPickSuggestion }) {
@@ -781,6 +960,7 @@ function IconDefinitions() {
       <symbol id="icon-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></symbol>
       <symbol id="icon-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6" /></symbol>
       <symbol id="icon-x" viewBox="0 0 24 24"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></symbol>
+      <symbol id="icon-lock" viewBox="0 0 24 24"><path d="M7 11V8a5 5 0 0 1 10 0v3" /><path d="M6 11h12v10H6z" /></symbol>
     </svg>
   );
 }
@@ -890,6 +1070,38 @@ function loadState() {
       settings: { ...defaultSettings }
     };
   }
+}
+
+function getRoute() {
+  const path = window.location.pathname.replace(/\/+$/, "") || "/";
+  if (path === ADMIN_PATH) return "admin";
+  if (path === RESTRICTION_PATH) return "restricted";
+  return "chat";
+}
+
+function loadWebMode() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(WEB_MODE_KEY) || "{}");
+    return {
+      restricted: Boolean(parsed.restricted),
+      updatedAt: Number(parsed.updatedAt) || 0
+    };
+  } catch {
+    return {
+      restricted: false,
+      updatedAt: 0
+    };
+  }
+}
+
+function saveWebMode(mode) {
+  localStorage.setItem(
+    WEB_MODE_KEY,
+    JSON.stringify({
+      restricted: Boolean(mode.restricted),
+      updatedAt: Number(mode.updatedAt) || Date.now()
+    })
+  );
 }
 
 function saveState(state) {
@@ -1342,6 +1554,16 @@ function formatRelativeTime(timestamp) {
   if (diff < hour) return `${Math.floor(diff / minute)} menit lalu`;
   if (diff < day) return `${Math.floor(diff / hour)} jam lalu`;
   return new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "short" }).format(timestamp);
+}
+
+function formatAdminTime(timestamp) {
+  if (!timestamp) return "Belum pernah";
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(timestamp);
 }
 
 createRoot(document.getElementById("root")).render(

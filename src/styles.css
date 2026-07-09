@@ -286,11 +286,19 @@ svg {
 .sidebar-footer {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 9px;
   min-height: 34px;
   padding: 0 6px;
   color: var(--muted);
   font-size: 12px;
+}
+
+.connection-state {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
 }
 
 .connection-dot {
@@ -306,6 +314,294 @@ svg {
 
 .connection-dot.bad {
   background: #ef4444;
+}
+
+.footer-admin {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--surface-muted);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.footer-admin svg {
+  width: 15px;
+  height: 15px;
+}
+
+.footer-admin:hover {
+  border-color: color-mix(in srgb, var(--brand) 42%, var(--line));
+  color: var(--brand);
+}
+
+.admin-shell,
+.restriction-shell {
+  width: 100%;
+  height: 100vh;
+  overflow: auto;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-muted) 58%, var(--bg)), var(--bg) 42%),
+    var(--bg);
+  color: var(--text);
+}
+
+.admin-shell {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  padding: 22px;
+}
+
+.admin-top,
+.admin-card {
+  width: min(960px, 100%);
+  margin: 0 auto;
+}
+
+.admin-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+}
+
+.admin-brand .brand-subtitle,
+.admin-brand .brand-name {
+  display: block;
+}
+
+.admin-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.admin-card-main {
+  display: grid;
+  gap: 18px;
+  padding: 26px;
+}
+
+.admin-status {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-muted);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.admin-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #16a34a;
+}
+
+.admin-status.restricted {
+  border-color: color-mix(in srgb, var(--danger) 46%, var(--line));
+  background: color-mix(in srgb, var(--surface) 86%, var(--danger));
+  color: var(--danger);
+}
+
+.admin-status.restricted .admin-status-dot {
+  background: var(--danger);
+}
+
+.admin-status.normal {
+  border-color: color-mix(in srgb, #16a34a 32%, var(--line));
+}
+
+.admin-card h1,
+.restriction-card h1 {
+  margin: 0;
+  font-size: clamp(34px, 7vw, 72px);
+  line-height: 1.02;
+  letter-spacing: 0;
+}
+
+.admin-card p,
+.restriction-card p {
+  margin: 0;
+  max-width: 620px;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.admin-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  background: var(--surface-muted);
+}
+
+.admin-control-title {
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.admin-control-copy {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.admin-switch {
+  display: grid;
+  width: 58px;
+  height: 34px;
+  align-items: center;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+.admin-switch span {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--muted);
+  transition: transform 0.16s ease, background-color 0.16s ease;
+}
+
+.admin-switch.on {
+  border-color: color-mix(in srgb, var(--danger) 48%, var(--line));
+  background: color-mix(in srgb, var(--surface) 80%, var(--danger));
+}
+
+.admin-switch.on span {
+  background: var(--danger);
+  transform: translateX(24px);
+}
+
+.admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-primary {
+  width: auto;
+}
+
+.admin-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 850;
+}
+
+.admin-secondary.compact {
+  min-height: 38px;
+}
+
+.primary-action:disabled,
+.admin-secondary:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.admin-detail {
+  padding: 18px;
+}
+
+.admin-detail h2 {
+  margin: 0 0 12px;
+  font-size: 15px;
+}
+
+.admin-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.admin-detail-grid > div {
+  display: grid;
+  gap: 4px;
+  min-height: 74px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--surface-muted);
+}
+
+.admin-detail-grid span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.admin-detail-grid strong {
+  overflow-wrap: anywhere;
+  font-size: 14px;
+}
+
+.restriction-shell {
+  display: grid;
+  place-items: center;
+  padding: 22px;
+}
+
+.restriction-card {
+  display: grid;
+  width: min(640px, 100%);
+  justify-items: center;
+  gap: 14px;
+  padding: 38px 22px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+
+.restriction-mark {
+  display: grid;
+  width: 54px;
+  height: 54px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--danger) 42%, var(--line));
+  border-radius: var(--radius-panel);
+  background: color-mix(in srgb, var(--surface) 82%, var(--danger));
+  color: var(--danger);
 }
 
 .chat-panel {
@@ -1450,6 +1746,40 @@ svg {
 
   .search-box input {
     min-height: 38px;
+  }
+
+  .admin-shell {
+    padding: 12px;
+  }
+
+  .admin-top {
+    align-items: flex-start;
+  }
+
+  .admin-card-main {
+    padding: 18px;
+  }
+
+  .admin-control,
+  .admin-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-switch {
+    justify-self: start;
+  }
+
+  .admin-actions {
+    display: grid;
+  }
+
+  .admin-primary,
+  .admin-secondary {
+    width: 100%;
+  }
+
+  .restriction-card {
+    padding: 30px 18px;
   }
 
   .topbar {
