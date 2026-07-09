@@ -601,8 +601,9 @@ function ModelPicker({ models, value, disabled, onSelect }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [intent, setIntent] = useState("all");
+  const [source, setSource] = useState("all");
   const pickerRef = useRef(null);
-  const modelInfos = useMemo(() => models.map((model) => describeModel(model.id)), [models]);
+  const modelInfos = useMemo(() => models.map((model) => describeModel(model)), [models]);
   const selectedInfo = useMemo(() => describeModel(value), [value]);
 
   useEffect(() => {
@@ -627,9 +628,10 @@ function ModelPicker({ models, value, disabled, onSelect }) {
   }, [open]);
 
   const filters = useMemo(() => buildModelFilters(modelInfos), [modelInfos]);
+  const sourceFilters = useMemo(() => buildProviderFilters(modelInfos), [modelInfos]);
   const filteredModels = useMemo(
-    () => filterModelInfos(modelInfos, query, intent),
-    [modelInfos, query, intent]
+    () => filterModelInfos(modelInfos, query, intent, source),
+    [modelInfos, query, intent, source]
   );
   const groupedModels = useMemo(() => groupModelsByProvider(filteredModels), [filteredModels]);
   const triggerMeta = selectedInfo.id
@@ -688,6 +690,21 @@ function ModelPicker({ models, value, disabled, onSelect }) {
                 key={filter.id}
                 disabled={!filter.count}
                 onClick={() => setIntent(filter.id)}
+              >
+                <span>{filter.label}</span>
+                <span>{filter.count}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="model-filters provider-filters" role="tablist" aria-label="Filter sumber model">
+            {sourceFilters.map((filter) => (
+              <button
+                className={`model-filter source-filter${source === filter.id ? " active" : ""}`}
+                type="button"
+                key={filter.id}
+                disabled={!filter.count}
+                onClick={() => setSource(filter.id)}
               >
                 <span>{filter.label}</span>
                 <span>{filter.count}</span>
@@ -1144,25 +1161,36 @@ function getModelFeaturePack(model) {
   };
 }
 
-function describeModel(modelId) {
-  const id = String(modelId || "").trim();
-  const [provider = "", rawName = id] = id.includes("/") ? id.split("/") : ["", id];
+function describeModel(model) {
+  const id = typeof model === "string" ? String(model || "").trim() : String(model?.id || "").trim();
+  const owner = typeof model === "string" ? "" : String(model?.owned_by || "").trim();
+  const parts = id.split("/").filter(Boolean);
+  const provider = (parts.length > 1 ? parts[0] : owner).toLowerCase();
+  const rawPath = parts.length > 1 ? parts.slice(1).join("/") : id;
+  const shortName = parts.length > 2 ? parts[parts.length - 1] : rawPath || id;
   const lower = id.toLowerCase();
-  const badges = [];
+  const capabilityBadges = [];
+  const family = getModelFamily(lower);
 
-  if (lower.includes("review")) badges.push("Review");
-  if (lower.includes("codex") || lower.includes("code")) badges.push("Code");
-  if (/(flash|mini|lite|free|low|ultraspeed)/.test(lower)) badges.push("Cepat");
-  if (/(pro|opus|thinking|plan|max|large)/.test(lower)) badges.push("Reasoning");
-  if (lower.includes("agent")) badges.push("Agent");
-  if (!badges.length) badges.push("Chat");
+  if (lower.includes("review")) capabilityBadges.push("Review");
+  if (/(codex|opencode|code|mimo)/.test(lower)) capabilityBadges.push("Code");
+  if (/(flash|mini|lite|free|low|ultraspeed)/.test(lower)) capabilityBadges.push("Cepat");
+  if (/(r1|reasoning|thinking|plan|pro|opus|max|large|120b|122b|397b|deepseek|qwen|glm|kimi)/.test(lower)) {
+    capabilityBadges.push("Reasoning");
+  }
+  if (lower.includes("agent")) capabilityBadges.push("Agent");
+  if (!capabilityBadges.length) capabilityBadges.push("Chat");
+
+  const badges = family ? [...capabilityBadges, family] : capabilityBadges;
+  const providerLabel = getProviderLabel(provider);
 
   return {
     id,
     provider,
-    providerLabel: getProviderLabel(provider),
-    shortName: rawName || id,
-    searchable: `${id} ${getProviderLabel(provider)} ${badges.join(" ")}`.toLowerCase(),
+    providerLabel,
+    shortName: shortName || id,
+    modelPath: rawPath,
+    searchable: `${id} ${rawPath} ${providerLabel} ${family || ""} ${badges.join(" ")}`.toLowerCase(),
     badges
   };
 }
@@ -1185,14 +1213,35 @@ function buildModelFilters(models) {
   }));
 }
 
-function filterModelInfos(models, query, intent) {
+function buildProviderFilters(models) {
+  const counts = new Map();
+  for (const model of models) {
+    const provider = model.provider || "custom";
+    if (!counts.has(provider)) {
+      counts.set(provider, {
+        id: provider,
+        label: model.providerLabel || getProviderLabel(provider),
+        count: 0
+      });
+    }
+    counts.get(provider).count += 1;
+  }
+
+  return [
+    { id: "all", label: "Semua sumber", count: models.length },
+    ...[...counts.values()].sort((a, b) => a.label.localeCompare(b.label))
+  ];
+}
+
+function filterModelInfos(models, query, intent, source = "all") {
   const normalizedQuery = query.trim().toLowerCase();
   const filter = buildModelFilters(models).find((item) => item.id === intent);
 
   return models.filter((model) => {
     const matchesIntent = !filter || intent === "all" || hasIntent(model, intent);
+    const matchesSource = source === "all" || model.provider === source;
     const matchesQuery = !normalizedQuery || model.searchable.includes(normalizedQuery);
-    return matchesIntent && matchesQuery;
+    return matchesIntent && matchesSource && matchesQuery;
   });
 }
 
@@ -1227,14 +1276,49 @@ function hasBadge(model, badge) {
   return model.badges.includes(badge);
 }
 
+function getModelFamily(lowerId) {
+  if (lowerId.includes("codex")) return "Codex";
+  if (lowerId.includes("opencode")) return "OpenCode";
+  if (lowerId.includes("deepseek")) return "DeepSeek";
+  if (lowerId.includes("claude")) return "Claude";
+  if (lowerId.includes("gemini")) return "Gemini";
+  if (lowerId.includes("gpt")) return "GPT";
+  if (lowerId.includes("qwen")) return "Qwen";
+  if (lowerId.includes("kimi")) return "Kimi";
+  if (lowerId.includes("glm") || lowerId.includes("zai-org")) return "GLM";
+  if (lowerId.includes("mimo")) return "MiMo";
+  if (lowerId.includes("minimax")) return "MiniMax";
+  if (lowerId.includes("mistral")) return "Mistral";
+  if (lowerId.includes("tencent")) return "Tencent";
+  return "";
+}
+
 function getProviderLabel(provider) {
   const labels = {
-    ag: "Agent Gateway",
-    cx: "CX",
+    "9router": "9Router",
+    ag: "Antigravity",
+    antigravity: "Antigravity",
+    cx: "OpenAI Codex",
     gc: "Google Cloud",
-    nara: "Nara"
+    nara: "byNara",
+    bynara: "byNara",
+    siliconflow: "SiliconFlow",
+    sf: "SiliconFlow",
+    opencode: "OpenCode Free",
+    "opencode-free": "OpenCode Free",
+    mimo: "MiMo Code Free",
+    "mimo-code-free": "MiMo Code Free",
+    openai: "OpenAI"
   };
-  return labels[provider] || provider || "Custom";
+  return labels[provider] || prettifyProvider(provider) || "Custom";
+}
+
+function prettifyProvider(provider) {
+  return String(provider || "")
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 function isCodexModel(modelId) {

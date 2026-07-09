@@ -148,7 +148,12 @@ async function handleModels(res) {
 
   const data = await upstream.json();
   const models = Array.isArray(data.data)
-    ? data.data.map((model) => ({ id: model.id })).filter((model) => model.id)
+    ? data.data
+      .map((model) => ({
+        id: model.id,
+        owned_by: model.owned_by
+      }))
+      .filter((model) => model.id)
     : [];
 
   const publicModels = filterSelectableModels(models);

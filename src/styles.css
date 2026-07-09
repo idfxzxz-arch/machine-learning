@@ -488,6 +488,10 @@ svg {
   gap: 6px;
 }
 
+.provider-filters {
+  padding-top: 2px;
+}
+
 .model-filter {
   display: inline-flex;
   align-items: center;
@@ -506,6 +510,10 @@ svg {
   border-color: color-mix(in srgb, var(--brand) 44%, var(--line));
   background: var(--brand-soft);
   color: var(--brand-strong);
+}
+
+.source-filter {
+  background: var(--surface);
 }
 
 .model-filter:disabled {
@@ -1480,6 +1488,7 @@ svg {
     left: 8px;
     width: auto;
     max-height: calc(100dvh - 178px);
+    overflow: hidden;
     padding: 10px;
     border-radius: var(--radius-panel);
   }
@@ -1499,7 +1508,7 @@ svg {
   }
 
   .model-list {
-    max-height: calc(100dvh - 320px);
+    max-height: calc(100dvh - 360px);
   }
 
   .model-options {
