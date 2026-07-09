@@ -400,6 +400,10 @@ svg {
   padding: 26px;
 }
 
+.admin-login-card {
+  max-width: 640px;
+}
+
 .admin-status {
   display: inline-flex;
   width: fit-content;
@@ -462,6 +466,71 @@ svg {
   border: 1px solid var(--line);
   border-radius: var(--radius-panel);
   background: var(--surface-muted);
+}
+
+.admin-user-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--surface-muted);
+}
+
+.admin-user-row span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.admin-user-row strong {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+.admin-login-form {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-login-form label {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.admin-login-form input {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  outline: none;
+  background: var(--surface-muted);
+  color: var(--text);
+}
+
+.admin-login-form input:focus {
+  border-color: var(--brand);
+  background: var(--surface);
+}
+
+.admin-error {
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--danger) 42%, var(--line));
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--surface) 86%, var(--danger));
+  color: var(--danger);
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .admin-control-title {
@@ -1771,6 +1840,11 @@ svg {
 
   .admin-actions {
     display: grid;
+  }
+
+  .admin-user-row {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .admin-primary,

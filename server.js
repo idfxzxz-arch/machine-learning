@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { existsSync, readFileSync, statSync } from "node:fs";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { networkInterfaces } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -19,6 +20,13 @@ const DEFAULT_MODEL = process.env.DEFAULT_MODEL || "";
 const MODEL_ALLOWLIST = parseList(process.env.MODEL_ALLOWLIST || "");
 const ALLOWED_ORIGINS = parseList(process.env.ALLOWED_ORIGINS || "");
 const APP_NAME = "AlphaCodes AI";
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "idk";
+const ADMIN_PASSWORD_SHA256 =
+  process.env.ADMIN_PASSWORD_SHA256 || "83eecee52d15e7df3cbcf34b63045ca040a036bf715d96bf44f5eaae401fbd4e";
+const ADMIN_SESSION_COOKIE = "alphacodes_admin";
+const ADMIN_SESSION_MAX_AGE_SECONDS = 12 * 60 * 60;
+const ADMIN_SESSION_SECRET =
+  process.env.ADMIN_SESSION_SECRET || API_KEY || "alphacodes-admin-local-session";
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const RATE_LIMIT_MAX_REQUESTS = 30;
 const rateLimitBuckets = new Map();
@@ -77,6 +85,18 @@ export async function handleRequest(req, res) {
 
     if (url.pathname === "/api/models" && req.method === "GET") {
       return await handleModels(res);
+    }
+
+    if (url.pathname === "/api/admin/session" && req.method === "GET") {
+      return handleAdminSession(req, res);
+    }
+
+    if (url.pathname === "/api/admin/login" && req.method === "POST") {
+      return await handleAdminLogin(req, res);
+    }
+
+    if (url.pathname === "/api/admin/logout" && req.method === "POST") {
+      return handleAdminLogout(req, res);
     }
 
     if (url.pathname === "/api/chat" && req.method === "POST") {
@@ -159,6 +179,45 @@ async function handleModels(res) {
   const publicModels = filterSelectableModels(models);
   publicModels.sort((a, b) => a.id.localeCompare(b.id));
   return sendJson(res, 200, { models: publicModels });
+}
+
+function handleAdminSession(req, res) {
+  const session = verifyAdminSession(req);
+  return sendJson(res, 200, {
+    authenticated: Boolean(session),
+    username: session?.username || ""
+  });
+}
+
+async function handleAdminLogin(req, res) {
+  if (!isAllowedOrigin(req)) {
+    return sendJson(res, 403, { error: "Akses ditolak." });
+  }
+
+  if (!checkRateLimit(req)) {
+    return sendJson(res, 429, { error: "Terlalu banyak percobaan. Coba lagi sebentar." });
+  }
+
+  const body = await readJsonBody(req);
+  const username = String(body.username || "").trim();
+  const password = String(body.password || "");
+
+  if (username !== ADMIN_USERNAME || !isAdminPasswordValid(password)) {
+    return sendJson(res, 401, { error: "ID atau password admin salah." });
+  }
+
+  const expiresAt = Date.now() + ADMIN_SESSION_MAX_AGE_SECONDS * 1000;
+  const token = createAdminToken(username, expiresAt);
+  res.setHeader("Set-Cookie", makeAdminCookie(req, token, ADMIN_SESSION_MAX_AGE_SECONDS));
+  return sendJson(res, 200, {
+    authenticated: true,
+    username
+  });
+}
+
+function handleAdminLogout(req, res) {
+  res.setHeader("Set-Cookie", makeAdminCookie(req, "", 0));
+  return sendJson(res, 200, { authenticated: false });
 }
 
 async function handleChat(req, res) {
@@ -380,6 +439,72 @@ function filterSelectableModels(models) {
 
   const allowed = selectableModels.filter((model) => MODEL_ALLOWLIST.includes(model.id));
   return allowed.length ? allowed : selectableModels;
+}
+
+function isAdminPasswordValid(password) {
+  const hash = createHash("sha256").update(password).digest("hex");
+  return safeEqualHex(hash, ADMIN_PASSWORD_SHA256);
+}
+
+function createAdminToken(username, expiresAt) {
+  const payload = Buffer.from(JSON.stringify({ username, expiresAt })).toString("base64url");
+  const signature = signAdminPayload(payload);
+  return `${payload}.${signature}`;
+}
+
+function verifyAdminSession(req) {
+  const token = parseCookies(req.headers.cookie || "")[ADMIN_SESSION_COOKIE];
+  if (!token || !token.includes(".")) return null;
+
+  const [payload, signature] = token.split(".");
+  if (!payload || !signature || !safeEqualHex(signature, signAdminPayload(payload))) return null;
+
+  try {
+    const session = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+    if (session.username !== ADMIN_USERNAME) return null;
+    if (!Number.isFinite(session.expiresAt) || session.expiresAt <= Date.now()) return null;
+    return session;
+  } catch {
+    return null;
+  }
+}
+
+function signAdminPayload(payload) {
+  return createHmac("sha256", ADMIN_SESSION_SECRET).update(payload).digest("hex");
+}
+
+function makeAdminCookie(req, value, maxAge) {
+  const secure = isHttpsRequest(req) ? "; Secure" : "";
+  return [
+    `${ADMIN_SESSION_COOKIE}=${value}`,
+    "Path=/",
+    "HttpOnly",
+    "SameSite=Lax",
+    `Max-Age=${maxAge}`,
+    secure
+  ].filter(Boolean).join("; ");
+}
+
+function parseCookies(header) {
+  const cookies = {};
+  for (const part of String(header || "").split(";")) {
+    const [name, ...valueParts] = part.trim().split("=");
+    if (!name) continue;
+    cookies[name] = valueParts.join("=");
+  }
+  return cookies;
+}
+
+function isHttpsRequest(req) {
+  const forwardedProto = String(req.headers["x-forwarded-proto"] || "").split(",")[0].trim();
+  return forwardedProto === "https";
+}
+
+function safeEqualHex(left, right) {
+  const leftBuffer = Buffer.from(String(left || ""), "hex");
+  const rightBuffer = Buffer.from(String(right || ""), "hex");
+  if (leftBuffer.length !== rightBuffer.length) return false;
+  return timingSafeEqual(leftBuffer, rightBuffer);
 }
 
 function isAllowedOrigin(req) {

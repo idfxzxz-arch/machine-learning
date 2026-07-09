@@ -42,6 +42,7 @@ function App() {
   const [state, setState] = useState(loadState);
   const [route, setRoute] = useState(getRoute);
   const [webMode, setWebMode] = useState(loadWebMode);
+  const [adminSession, setAdminSession] = useState({ status: "checking", authenticated: false, username: "" });
   const [prompt, setPrompt] = useState("");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("Siap");
@@ -93,6 +94,34 @@ function App() {
       loadConfigAndModels();
     }
   }, [isAdminRoute, isRestrictedRoute, isRestrictionActive]);
+
+  useEffect(() => {
+    if (!isAdminRoute) return;
+    let cancelled = false;
+
+    async function checkSession() {
+      setAdminSession((prev) => ({ ...prev, status: "checking" }));
+      try {
+        const data = await fetchJson("/api/admin/session");
+        if (!cancelled) {
+          setAdminSession({
+            status: "ready",
+            authenticated: Boolean(data.authenticated),
+            username: data.username || ""
+          });
+        }
+      } catch {
+        if (!cancelled) {
+          setAdminSession({ status: "ready", authenticated: false, username: "" });
+        }
+      }
+    }
+
+    checkSession();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAdminRoute]);
 
   useEffect(() => {
     function handlePopState() {
@@ -404,16 +433,45 @@ function App() {
     navigateTo(restricted ? RESTRICTION_PATH : "/");
   }
 
+  async function loginAdmin(credentials) {
+    const data = await fetchJson("/api/admin/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(credentials)
+    });
+    setAdminSession({
+      status: "ready",
+      authenticated: Boolean(data.authenticated),
+      username: data.username || ""
+    });
+  }
+
+  async function logoutAdmin() {
+    await fetchJson("/api/admin/logout", { method: "POST" }).catch(() => ({}));
+    setAdminSession({ status: "ready", authenticated: false, username: "" });
+  }
+
   if (isAdminRoute) {
     return (
       <>
         <IconDefinitions />
-        <AdminPanel
-          webMode={webMode}
-          onEnableRestriction={() => updateRestrictionMode(true)}
-          onDisableRestriction={() => updateRestrictionMode(false)}
-          onOpenChat={() => navigateTo(isRestrictionActive ? RESTRICTION_PATH : "/")}
-        />
+        {adminSession.status === "checking" ? (
+          <AdminLoading onOpenChat={() => navigateTo(isRestrictionActive ? RESTRICTION_PATH : "/")} />
+        ) : adminSession.authenticated ? (
+          <AdminPanel
+            webMode={webMode}
+            username={adminSession.username}
+            onEnableRestriction={() => updateRestrictionMode(true)}
+            onDisableRestriction={() => updateRestrictionMode(false)}
+            onOpenChat={() => navigateTo(isRestrictionActive ? RESTRICTION_PATH : "/")}
+            onLogout={logoutAdmin}
+          />
+        ) : (
+          <AdminLogin
+            onLogin={loginAdmin}
+            onOpenChat={() => navigateTo(isRestrictionActive ? RESTRICTION_PATH : "/")}
+          />
+        )}
       </>
     );
   }
@@ -652,7 +710,103 @@ async function readJsonResponse(response) {
   return response.json();
 }
 
-function AdminPanel({ webMode, onEnableRestriction, onDisableRestriction, onOpenChat }) {
+function AdminLoading({ onOpenChat }) {
+  return (
+    <main className="admin-shell">
+      <div className="admin-top">
+        <button className="admin-brand" type="button" onClick={onOpenChat}>
+          <span className="brand-mark">AC</span>
+          <span>
+            <span className="brand-name">AlphaCodes</span>
+            <span className="brand-subtitle">Admin Panel</span>
+          </span>
+        </button>
+      </div>
+      <section className="admin-card admin-card-main">
+        <div className="admin-status normal">
+          <span className="admin-status-dot" />
+          <span>Memeriksa sesi</span>
+        </div>
+        <h1>Admin Panel</h1>
+        <p>Sedang memeriksa akses admin.</p>
+      </section>
+    </main>
+  );
+}
+
+function AdminLogin({ onLogin, onOpenChat }) {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function submitLogin(event) {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      await onLogin({ username, password });
+    } catch (loginError) {
+      setError(loginError.message || "Login gagal.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <main className="admin-shell">
+      <div className="admin-top">
+        <button className="admin-brand" type="button" onClick={onOpenChat}>
+          <span className="brand-mark">AC</span>
+          <span>
+            <span className="brand-name">AlphaCodes</span>
+            <span className="brand-subtitle">Admin Panel</span>
+          </span>
+        </button>
+        <button className="admin-secondary compact" type="button" onClick={onOpenChat}>
+          Buka web
+        </button>
+      </div>
+
+      <section className="admin-card admin-card-main admin-login-card">
+        <div className="admin-status">
+          <span className="admin-status-dot" />
+          <span>Login admin</span>
+        </div>
+        <h1>Masuk Admin</h1>
+        <p>Masukkan ID dan password admin untuk mengatur mode pembatasan.</p>
+
+        <form className="admin-login-form" onSubmit={submitLogin}>
+          <label>
+            <span>ID admin</span>
+            <input
+              type="text"
+              autoComplete="username"
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+            />
+          </label>
+          <label>
+            <span>Password</span>
+            <input
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+            />
+          </label>
+          {error && <div className="admin-error">{error}</div>}
+          <button className="primary-action admin-primary" type="submit" disabled={busy || !username.trim() || !password}>
+            <Icon name="lock" />
+            <span>{busy ? "Memeriksa..." : "Login"}</span>
+          </button>
+        </form>
+      </section>
+    </main>
+  );
+}
+
+function AdminPanel({ webMode, username, onEnableRestriction, onDisableRestriction, onOpenChat, onLogout }) {
   const restricted = Boolean(webMode.restricted);
 
   return (
@@ -677,6 +831,13 @@ function AdminPanel({ webMode, onEnableRestriction, onDisableRestriction, onOpen
         </div>
         <h1>Admin Panel</h1>
         <p>Atur mode akses web chat AI dari satu tempat.</p>
+        <div className="admin-user-row">
+          <span>Login sebagai</span>
+          <strong>{username || "Admin"}</strong>
+          <button className="admin-secondary compact" type="button" onClick={onLogout}>
+            Logout
+          </button>
+        </div>
 
         <div className="admin-control">
           <div>
