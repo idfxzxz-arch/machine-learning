@@ -55,6 +55,14 @@ function App() {
     () => getActiveConversation(state),
     [state]
   );
+  const selectedModelInfo = useMemo(
+    () => describeModel(state.settings.model),
+    [state.settings.model]
+  );
+  const modelFeaturePack = useMemo(
+    () => getModelFeaturePack(selectedModelInfo),
+    [selectedModelInfo]
+  );
 
   const filteredConversations = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -434,21 +442,12 @@ function App() {
               <div className="chat-meta">{activeConversation.messages.length} pesan</div>
             </div>
             <div className="top-actions">
-              <select
-                className="model-select"
-                aria-label="Model AI"
+              <ModelPicker
+                models={state.models}
                 value={state.settings.model}
                 disabled={isBusy || !state.models.length}
-                onChange={(event) => selectModel(event.target.value)}
-              >
-                {state.models.length ? (
-                  state.models.map((model) => (
-                    <option key={model.id} value={model.id}>{model.id}</option>
-                  ))
-                ) : (
-                  <option value={state.settings.model}>{state.settings.model || "Model"}</option>
-                )}
-              </select>
+                onSelect={selectModel}
+              />
               <button className="icon-button secondary-action" type="button" title="Regenerate" aria-label="Regenerate" onClick={regenerateLast} disabled={isBusy}>
                 <Icon name="refresh" />
               </button>
@@ -495,7 +494,7 @@ function App() {
                 </article>
               ))
             ) : (
-              <EmptyState onPickSuggestion={(value) => {
+              <EmptyState modelFeaturePack={modelFeaturePack} onPickSuggestion={(value) => {
                 setPrompt(value);
                 requestAnimationFrame(() => textareaRef.current?.focus());
               }} />
@@ -571,15 +570,17 @@ async function readJsonResponse(response) {
   return response.json();
 }
 
-function EmptyState({ onPickSuggestion }) {
+function EmptyState({ modelFeaturePack, onPickSuggestion }) {
+  const activeSuggestions = modelFeaturePack?.suggestions?.length ? modelFeaturePack.suggestions : suggestions;
+
   return (
     <div className="empty-state">
       <div className="empty-block">
-        <div className="assistant-kicker">AlphaCodes AI</div>
-        <h1>Mulai dari bahan mentah.</h1>
-        <p>Ringkas, susun, atau rapikan tanpa kehilangan konteks kerja.</p>
+        <div className="assistant-kicker">{modelFeaturePack?.label || "AlphaCodes AI"}</div>
+        <h1>{modelFeaturePack?.headline || "Mulai dari bahan mentah."}</h1>
+        <p>{modelFeaturePack?.description || "Ringkas, susun, atau rapikan tanpa kehilangan konteks kerja."}</p>
         <div className="suggestions">
-          {suggestions.map((suggestion) => (
+          {activeSuggestions.map((suggestion) => (
             <button
               className="suggestion"
               type="button"
@@ -592,6 +593,147 @@ function EmptyState({ onPickSuggestion }) {
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+function ModelPicker({ models, value, disabled, onSelect }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [intent, setIntent] = useState("all");
+  const pickerRef = useRef(null);
+  const modelInfos = useMemo(() => models.map((model) => describeModel(model.id)), [models]);
+  const selectedInfo = useMemo(() => describeModel(value), [value]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    function handlePointerDown(event) {
+      if (!pickerRef.current?.contains(event.target)) {
+        setOpen(false);
+      }
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === "Escape") setOpen(false);
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
+  const filters = useMemo(() => buildModelFilters(modelInfos), [modelInfos]);
+  const filteredModels = useMemo(
+    () => filterModelInfos(modelInfos, query, intent),
+    [modelInfos, query, intent]
+  );
+  const groupedModels = useMemo(() => groupModelsByProvider(filteredModels), [filteredModels]);
+  const triggerMeta = selectedInfo.id
+    ? `${selectedInfo.providerLabel}, ${selectedInfo.badges.join(", ")}`
+    : `${models.length} model tersedia`;
+
+  function pickModel(modelId) {
+    onSelect(modelId);
+    setOpen(false);
+  }
+
+  return (
+    <div className={`model-picker${open ? " open" : ""}`} ref={pickerRef}>
+      <button
+        className="model-trigger"
+        type="button"
+        aria-label="Pilih model AI"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        disabled={disabled}
+        onClick={() => setOpen((value) => !value)}
+      >
+        <span className="model-trigger-copy">
+          <span className="model-trigger-title">{selectedInfo.shortName || "Model"}</span>
+          <span className="model-trigger-meta">{triggerMeta}</span>
+        </span>
+        <Icon name="chevron" />
+      </button>
+
+      {open && (
+        <div className="model-panel" role="dialog" aria-label="Pilih model AI">
+          <div className="model-panel-head">
+            <div>
+              <div className="model-panel-title">Model AI</div>
+              <div className="model-panel-subtitle">{models.length} model tersedia dari endpoint</div>
+            </div>
+            <button className="mini-button model-close" type="button" aria-label="Tutup pilihan model" onClick={() => setOpen(false)}>
+              <Icon name="x" />
+            </button>
+          </div>
+
+          <label className="model-search">
+            <input
+              type="search"
+              placeholder="Cari model, provider, atau kemampuan"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </label>
+
+          <div className="model-filters" role="tablist" aria-label="Filter model">
+            {filters.map((filter) => (
+              <button
+                className={`model-filter${intent === filter.id ? " active" : ""}`}
+                type="button"
+                key={filter.id}
+                disabled={!filter.count}
+                onClick={() => setIntent(filter.id)}
+              >
+                <span>{filter.label}</span>
+                <span>{filter.count}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="model-list">
+            {groupedModels.length ? (
+              groupedModels.map((group) => (
+                <section className="model-group" key={group.provider}>
+                  <div className="model-group-title">
+                    <span>{group.label}</span>
+                    <span>{group.items.length}</span>
+                  </div>
+                  <div className="model-options">
+                    {group.items.map((model) => (
+                      <button
+                        className={`model-option${model.id === value ? " selected" : ""}`}
+                        type="button"
+                        key={model.id}
+                        onClick={() => pickModel(model.id)}
+                      >
+                        <span className="model-option-main">
+                          <span className="model-option-name">{model.shortName}</span>
+                          <span className="model-option-id">{model.id}</span>
+                        </span>
+                        <span className="model-option-side">
+                          <span className="model-badges">
+                            {model.badges.map((badge) => (
+                              <span className="model-badge" key={badge}>{badge}</span>
+                            ))}
+                          </span>
+                          {model.id === value && <span className="model-selected"><Icon name="check" /></span>}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              ))
+            ) : (
+              <div className="model-empty">Model tidak ditemukan.</div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -616,6 +758,9 @@ function IconDefinitions() {
       <symbol id="icon-download" viewBox="0 0 24 24"><path d="M12 3v12" /><path d="m7 10 5 5 5-5" /><path d="M5 21h14" /></symbol>
       <symbol id="icon-sun" viewBox="0 0 24 24"><path d="M12 4V2" /><path d="M12 22v-2" /><path d="m4.93 4.93-1.41-1.41" /><path d="m20.48 20.48-1.41-1.41" /><path d="M4 12H2" /><path d="M22 12h-2" /><path d="m4.93 19.07-1.41 1.41" /><path d="m20.48 3.52-1.41 1.41" /><path d="M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z" /></symbol>
       <symbol id="icon-menu" viewBox="0 0 24 24"><path d="M4 6h16" /><path d="M4 12h16" /><path d="M4 18h16" /></symbol>
+      <symbol id="icon-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></symbol>
+      <symbol id="icon-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6" /></symbol>
+      <symbol id="icon-x" viewBox="0 0 24 24"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></symbol>
     </svg>
   );
 }
@@ -835,6 +980,261 @@ function chooseChatModel(models, currentModel, defaultModel) {
   }
 
   return candidates[0] || currentModel || defaultModel || "";
+}
+
+function getModelFeaturePack(model) {
+  const info = model?.id ? model : describeModel("");
+  const has = (badge) => info.badges.includes(badge);
+
+  if (has("Review")) {
+    return {
+      label: "Mode Review",
+      headline: "Audit sebelum ship.",
+      description: "Model ini cocok untuk mencari risiko, regresi, dan test gap dari perubahan yang ada.",
+      suggestions: [
+        {
+          title: "Review PR",
+          detail: "Bug, risiko, dan test gap",
+          prompt: "Review perubahan berikut seperti code reviewer senior. Fokus pada bug, risiko regresi, security, dan test gap:"
+        },
+        {
+          title: "Audit rilis",
+          detail: "Checklist sebelum deploy",
+          prompt: "Buat audit readiness sebelum rilis dari catatan berikut. Pisahkan blocker, risiko, dan langkah verifikasi:"
+        },
+        {
+          title: "Cari edge case",
+          detail: "Kasus yang mudah terlewat",
+          prompt: "Cari edge case dan failure mode dari implementasi berikut, lalu beri prioritas per dampak:"
+        },
+        {
+          title: "Ringkas temuan",
+          detail: "Komentar siap dikirim",
+          prompt: "Ubah temuan review berikut menjadi komentar yang jelas, spesifik, dan mudah ditindaklanjuti:"
+        }
+      ]
+    };
+  }
+
+  if (has("Code")) {
+    return {
+      label: "Mode Code",
+      headline: "Kirim bug atau potongan kode.",
+      description: "Model ini cocok untuk debug, refactor, review implementasi, dan rencana coding bertahap.",
+      suggestions: [
+        {
+          title: "Debug error",
+          detail: "Akar masalah dan fix",
+          prompt: "Bantu debug error berikut. Jelaskan akar masalah, file yang perlu dicek, dan patch yang disarankan:"
+        },
+        {
+          title: "Refactor aman",
+          detail: "Tetap jaga perilaku",
+          prompt: "Refactor kode berikut agar lebih rapi tanpa mengubah perilaku. Jelaskan risiko dan test yang perlu dijalankan:"
+        },
+        {
+          title: "Buat patch",
+          detail: "Langkah implementasi",
+          prompt: "Ubah kebutuhan berikut menjadi rencana patch kecil yang bisa langsung dikerjakan di repo:"
+        },
+        {
+          title: "Test plan",
+          detail: "Unit, integration, manual",
+          prompt: "Buat test plan untuk perubahan berikut. Pisahkan unit test, integration test, dan verifikasi manual:"
+        }
+      ]
+    };
+  }
+
+  if (has("Agent")) {
+    return {
+      label: "Mode Agent",
+      headline: "Rancang alur kerja otomatis.",
+      description: "Model ini cocok untuk tugas multi-step, orkestrasi agent, dan workflow yang perlu keputusan bertahap.",
+      suggestions: [
+        {
+          title: "Rancang agent",
+          detail: "Role, tools, guardrail",
+          prompt: "Rancang agent untuk kebutuhan berikut. Sertakan role, tool yang dibutuhkan, guardrail, dan alur eksekusi:"
+        },
+        {
+          title: "Workflow kerja",
+          detail: "Input, langkah, output",
+          prompt: "Ubah proses berikut menjadi workflow agentik dengan input, langkah, kondisi gagal, dan output akhir:"
+        },
+        {
+          title: "Checklist otomasi",
+          detail: "Urutan eksekusi jelas",
+          prompt: "Buat checklist otomasi dari target berikut. Tandai bagian yang perlu human approval:"
+        },
+        {
+          title: "Evaluasi agent",
+          detail: "Tes kualitas output",
+          prompt: "Buat kriteria evaluasi untuk agent berikut. Sertakan skenario sukses, gagal, dan contoh input uji:"
+        }
+      ]
+    };
+  }
+
+  if (has("Reasoning")) {
+    return {
+      label: "Mode Reasoning",
+      headline: "Pecah masalah kompleks.",
+      description: "Model ini cocok untuk arsitektur, trade-off, keputusan teknis, dan rencana eksekusi yang butuh penalaran.",
+      suggestions: [
+        {
+          title: "Bandingkan opsi",
+          detail: "Trade-off dan rekomendasi",
+          prompt: "Bandingkan opsi berikut. Jelaskan trade-off, risiko, biaya implementasi, dan rekomendasi akhir:"
+        },
+        {
+          title: "Rencana sistem",
+          detail: "Arsitektur dan risiko",
+          prompt: "Buat rencana arsitektur untuk kebutuhan berikut. Sertakan komponen, data flow, risiko, dan mitigasi:"
+        },
+        {
+          title: "Ambil keputusan",
+          detail: "Kriteria dan alasan",
+          prompt: "Bantu ambil keputusan dari konteks berikut. Buat kriteria, nilai tiap opsi, lalu simpulkan:"
+        },
+        {
+          title: "Peta risiko",
+          detail: "Prioritas dan mitigasi",
+          prompt: "Petakan risiko dari rencana berikut. Urutkan berdasarkan dampak dan kemungkinan, lalu beri mitigasi:"
+        }
+      ]
+    };
+  }
+
+  if (has("Cepat")) {
+    return {
+      label: "Mode Cepat",
+      headline: "Selesaikan tugas ringan cepat.",
+      description: "Model ini cocok untuk ringkasan, draft singkat, klasifikasi, dan editing cepat.",
+      suggestions: [
+        {
+          title: "Ringkas cepat",
+          detail: "Poin penting saja",
+          prompt: "Ringkas teks berikut menjadi poin penting yang singkat dan mudah dibaca:"
+        },
+        {
+          title: "Draft balasan",
+          detail: "Jelas dan sopan",
+          prompt: "Buat draft balasan singkat dan profesional untuk konteks berikut:"
+        },
+        {
+          title: "Klasifikasi",
+          detail: "Label dan alasan",
+          prompt: "Klasifikasikan item berikut, beri label yang konsisten, dan jelaskan alasan singkat:"
+        },
+        {
+          title: "Rapikan teks",
+          detail: "Lebih jelas dibaca",
+          prompt: "Rapikan teks berikut agar lebih jelas, singkat, dan enak dibaca tanpa mengubah makna:"
+        }
+      ]
+    };
+  }
+
+  return {
+    label: "AlphaCodes AI",
+    headline: "Mulai dari bahan mentah.",
+    description: "Ringkas, susun, atau rapikan tanpa kehilangan konteks kerja.",
+    suggestions
+  };
+}
+
+function describeModel(modelId) {
+  const id = String(modelId || "").trim();
+  const [provider = "", rawName = id] = id.includes("/") ? id.split("/") : ["", id];
+  const lower = id.toLowerCase();
+  const badges = [];
+
+  if (lower.includes("review")) badges.push("Review");
+  if (lower.includes("codex") || lower.includes("code")) badges.push("Code");
+  if (/(flash|mini|lite|free|low|ultraspeed)/.test(lower)) badges.push("Cepat");
+  if (/(pro|opus|thinking|plan|max|large)/.test(lower)) badges.push("Reasoning");
+  if (lower.includes("agent")) badges.push("Agent");
+  if (!badges.length) badges.push("Chat");
+
+  return {
+    id,
+    provider,
+    providerLabel: getProviderLabel(provider),
+    shortName: rawName || id,
+    searchable: `${id} ${getProviderLabel(provider)} ${badges.join(" ")}`.toLowerCase(),
+    badges
+  };
+}
+
+function buildModelFilters(models) {
+  const definitions = [
+    { id: "all", label: "Semua", match: () => true },
+    { id: "chat", label: "Umum", match: (model) => hasBadge(model, "Chat") },
+    { id: "code", label: "Code", match: (model) => hasBadge(model, "Code") },
+    { id: "review", label: "Review", match: (model) => hasBadge(model, "Review") },
+    { id: "fast", label: "Cepat", match: (model) => hasBadge(model, "Cepat") },
+    { id: "reasoning", label: "Reasoning", match: (model) => hasBadge(model, "Reasoning") },
+    { id: "agent", label: "Agent", match: (model) => hasBadge(model, "Agent") }
+  ];
+
+  return definitions.map((definition) => ({
+    id: definition.id,
+    label: definition.label,
+    count: models.filter(definition.match).length
+  }));
+}
+
+function filterModelInfos(models, query, intent) {
+  const normalizedQuery = query.trim().toLowerCase();
+  const filter = buildModelFilters(models).find((item) => item.id === intent);
+
+  return models.filter((model) => {
+    const matchesIntent = !filter || intent === "all" || hasIntent(model, intent);
+    const matchesQuery = !normalizedQuery || model.searchable.includes(normalizedQuery);
+    return matchesIntent && matchesQuery;
+  });
+}
+
+function groupModelsByProvider(models) {
+  const groups = new Map();
+  for (const model of models) {
+    const provider = model.provider || "custom";
+    if (!groups.has(provider)) {
+      groups.set(provider, {
+        provider,
+        label: model.providerLabel || getProviderLabel(provider),
+        items: []
+      });
+    }
+    groups.get(provider).items.push(model);
+  }
+
+  return [...groups.values()].sort((a, b) => a.label.localeCompare(b.label));
+}
+
+function hasIntent(model, intent) {
+  if (intent === "chat") return hasBadge(model, "Chat");
+  if (intent === "code") return hasBadge(model, "Code");
+  if (intent === "review") return hasBadge(model, "Review");
+  if (intent === "fast") return hasBadge(model, "Cepat");
+  if (intent === "reasoning") return hasBadge(model, "Reasoning");
+  if (intent === "agent") return hasBadge(model, "Agent");
+  return true;
+}
+
+function hasBadge(model, badge) {
+  return model.badges.includes(badge);
+}
+
+function getProviderLabel(provider) {
+  const labels = {
+    ag: "Agent Gateway",
+    cx: "CX",
+    gc: "Google Cloud",
+    nara: "Nara"
+  };
+  return labels[provider] || provider || "Custom";
 }
 
 function isCodexModel(modelId) {

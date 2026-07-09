@@ -357,6 +357,288 @@ svg {
   gap: 8px;
 }
 
+.model-picker {
+  position: relative;
+  width: min(390px, 34vw);
+  min-width: 220px;
+}
+
+.model-trigger {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 20px;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 38px;
+  padding: 5px 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  outline: none;
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+}
+
+.model-trigger:hover,
+.model-trigger:focus-visible {
+  border-color: color-mix(in srgb, var(--brand) 44%, var(--line));
+}
+
+.model-trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.model-trigger-copy {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+}
+
+.model-trigger-title,
+.model-trigger-meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.model-trigger-title {
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.model-trigger-meta {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.model-trigger svg {
+  justify-self: end;
+  color: var(--muted);
+  transition: transform 0.16s ease;
+}
+
+.model-picker.open .model-trigger svg {
+  transform: rotate(180deg);
+}
+
+.model-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 30;
+  display: grid;
+  width: min(680px, calc(100vw - 32px));
+  max-height: min(70vh, 620px);
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-chat);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.model-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.model-panel-title {
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.model-panel-subtitle {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.model-close {
+  width: 32px;
+  height: 32px;
+}
+
+.model-search input {
+  width: 100%;
+  min-height: 38px;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  outline: none;
+  background: var(--surface-muted);
+  color: var(--text);
+}
+
+.model-search input:focus {
+  border-color: var(--brand);
+  background: var(--surface);
+}
+
+.model-search input::placeholder {
+  color: var(--muted);
+}
+
+.model-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.model-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-muted);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.model-filter.active {
+  border-color: color-mix(in srgb, var(--brand) 44%, var(--line));
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+}
+
+.model-filter:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.model-list {
+  display: grid;
+  min-height: 0;
+  max-height: min(44vh, 380px);
+  gap: 12px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.model-group {
+  display: grid;
+  gap: 6px;
+}
+
+.model-group-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.model-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.model-option {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 58px;
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  background: var(--surface-muted);
+  color: var(--text);
+  text-align: left;
+}
+
+.model-option:hover,
+.model-option:focus-visible {
+  border-color: color-mix(in srgb, var(--brand) 42%, var(--line));
+  background: var(--surface);
+}
+
+.model-option.selected {
+  border-color: var(--brand);
+  background: color-mix(in srgb, var(--surface) 86%, var(--brand-soft));
+}
+
+.model-option-main {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.model-option-name,
+.model-option-id {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.model-option-name {
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.model-option-id {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.model-option-side {
+  display: grid;
+  justify-items: end;
+  gap: 5px;
+}
+
+.model-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px;
+  max-width: 180px;
+}
+
+.model-badge {
+  padding: 3px 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 850;
+  line-height: 1;
+}
+
+.model-selected {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--brand);
+  color: #ffffff;
+}
+
+.model-selected svg {
+  width: 14px;
+  height: 14px;
+}
+
+.model-empty {
+  padding: 18px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-panel);
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+
 .model-select {
   width: min(270px, 24vw);
   height: 38px;
@@ -892,6 +1174,12 @@ svg {
     justify-content: flex-end;
   }
 
+  .model-picker {
+    flex: 1;
+    width: min(100%, 340px);
+    min-width: 0;
+  }
+
   .model-select {
     width: min(100%, 230px);
     flex: 1;
@@ -1169,6 +1457,63 @@ svg {
     justify-self: end;
   }
 
+  .model-picker {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .model-trigger {
+    min-height: 40px;
+    padding: 0 10px;
+  }
+
+  .model-trigger-meta {
+    display: none;
+  }
+
+  .model-panel {
+    position: fixed;
+    top: 106px;
+    right: 8px;
+    left: 8px;
+    width: auto;
+    max-height: calc(100dvh - 178px);
+    padding: 10px;
+    border-radius: var(--radius-panel);
+  }
+
+  .model-panel-head {
+    align-items: center;
+  }
+
+  .model-filters {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .model-filter {
+    flex: 0 0 auto;
+  }
+
+  .model-list {
+    max-height: calc(100dvh - 320px);
+  }
+
+  .model-options {
+    grid-template-columns: 1fr;
+  }
+
+  .model-option {
+    min-height: 56px;
+  }
+
+  .model-badges {
+    max-width: 140px;
+  }
+
   .model-select {
     grid-column: 1 / -1;
     grid-row: 2;
@@ -1321,6 +1666,11 @@ svg {
 
   .topbar {
     padding-inline: 8px;
+  }
+
+  .model-panel {
+    right: 6px;
+    left: 6px;
   }
 
   .messages {
